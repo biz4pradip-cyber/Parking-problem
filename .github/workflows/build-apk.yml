@@ -20,8 +20,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up the Android SDK
-        uses: android-actions/setup-android@v3
+      # The runner image ships the Android SDK at $ANDROID_HOME; AGP pulls any
+      # missing platform itself, which needs the licences accepted first.
+      - name: Accept the Android SDK licences
+        run: |
+          # The cmdline-tools directory is versioned (16.0, latest, ...) — take whichever is there.
+          sdkmanager=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -1)
+          if [ -n "$sdkmanager" ]; then yes | "$sdkmanager" --licenses > /dev/null || true; fi
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
