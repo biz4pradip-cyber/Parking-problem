@@ -21,11 +21,13 @@ import androidx.navigation.compose.rememberNavController
 import com.parkspot.app.ui.screens.FindScreen
 import com.parkspot.app.ui.screens.HistoryScreen
 import com.parkspot.app.ui.screens.HomeScreen
+import com.parkspot.app.ui.screens.SettingsScreen
 
 object Routes {
     const val HOME = "home"
     const val FIND = "find"
     const val HISTORY = "history"
+    const val SETTINGS = "settings"
 }
 
 @Composable
@@ -69,6 +71,7 @@ fun ParkSpotApp(
                 snackbarHostState = snackbarHostState,
                 onFindMyCar = { navController.navigate(Routes.FIND) },
                 onOpenHistory = { navController.navigate(Routes.HISTORY) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
         composable(Routes.FIND) {
@@ -84,6 +87,13 @@ fun ParkSpotApp(
                         ),
                     )
                 },
+            )
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                viewModel = viewModel,
+                snackbarHostState = snackbarHostState,
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.HISTORY) {

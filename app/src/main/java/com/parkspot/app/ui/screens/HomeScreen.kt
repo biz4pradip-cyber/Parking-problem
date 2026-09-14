@@ -23,11 +23,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.DirectionsWalk
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -79,6 +81,7 @@ fun HomeScreen(
     snackbarHostState: SnackbarHostState,
     onFindMyCar: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.homeState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -143,6 +146,12 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Rounded.History,
                             contentDescription = stringResource(R.string.history),
+                        )
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = stringResource(R.string.settings),
                         )
                     }
                 },
@@ -323,6 +332,23 @@ private fun ParkedCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            if (spot.savedAutomatically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.DirectionsCar,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = stringResource(R.string.saved_automatically),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
 
             if (spot.label.isNotBlank()) {
                 Text(text = spot.label, style = MaterialTheme.typography.titleMedium)

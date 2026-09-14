@@ -16,6 +16,7 @@ app has no internet permission at all.
 | **Save a spot** | One tap takes a high-accuracy fix, falling back to the last known position when the sky is blocked (underground garages). Saving a new spot archives the old one. |
 | **Find the car** | A dial points at the car and shows the remaining distance. The bearing is computed against **true** north: the compass reading is corrected by the local magnetic declination, which is over 20° in parts of the world. |
 | **Last few metres** | GPS is worth ±5–20 m at best, so the details you saved — level, bay, note and photo — are shown right on the find screen, which is what actually gets you to the car. |
+| **Hands-free parking** | Pick your car's Bluetooth device once, and losing that connection — the moment you step out of the car — saves the spot by itself. Reconnecting clears it again, because you are driving. |
 | **Parking reminder** | Set 30 min / 1 h / 2 h and get a notification before the meter runs out. Re-armed after a reboot. |
 | **Open in Maps / Share** | Hands the coordinates to any maps app, or shares a link so someone else can find the car. |
 | **History** | Past spots with the date, how long you were parked, and the photo. Deletable individually or all at once. |
@@ -37,6 +38,31 @@ adb install -r parkspot-debug.apk      # or just open the file on the phone
 
 Sideloading needs "install unknown apps" enabled for whichever app opens the file. For a
 Play-signable build, `./gradlew assembleRelease` with your own signing config in `app/build.gradle.kts`.
+
+## How the automatic mode works
+
+Losing the car stereo is the most reliable "I have just parked" signal a phone gets, so that is
+what the app listens for:
+
+1. A manifest-declared receiver watches `ACTION_ACL_CONNECTED` / `ACTION_ACL_DISCONNECTED`. Both
+   are exempt from Android's implicit-broadcast restrictions, so they still arrive with the app
+   closed.
+2. On a disconnect from *your* chosen device it starts a short foreground service. Receiving a
+   Bluetooth broadcast that requires `BLUETOOTH_CONNECT` is one of the documented exemptions from
+   the Android 12 background-start restrictions, and a `location`-typed foreground service is what
+   lets the fix be taken at all with the app in the background — no background-location permission
+   needed.
+3. The service takes one fix, stores the spot, posts a quiet notification and stops. It runs for
+   seconds, not for the time you are parked.
+4. Reconnecting to the same device archives the spot: you are in the car, so there is nothing to
+   walk back to.
+
+A stereo that drops and reconnects mid-drive will not litter the history — a disconnect within
+three minutes of the last save is ignored.
+
+Worth knowing: some manufacturers' battery optimisation kills manifest receivers for apps they
+consider idle. If automatic saves stop happening, exclude ParkSpot from battery optimisation. The
+manual **Park here** button always works regardless.
 
 ## Building it
 

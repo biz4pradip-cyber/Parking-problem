@@ -27,6 +27,8 @@ data class ParkingSpot(
     /** When to fire the "your parking runs out" notification. */
     val reminderAt: Long? = null,
     val isActive: Boolean = true,
+    /** True when the car's Bluetooth disconnecting saved this spot, rather than a tap. */
+    val savedAutomatically: Boolean = false,
     /** When the car was found again; only set on archived rows. */
     val clearedAt: Long? = null,
 ) {

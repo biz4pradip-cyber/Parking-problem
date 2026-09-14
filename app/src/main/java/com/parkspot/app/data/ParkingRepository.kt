@@ -20,6 +20,7 @@ class ParkingRepository(
         longitude: Double,
         accuracyMeters: Float,
         savedAt: Long = System.currentTimeMillis(),
+        savedAutomatically: Boolean = false,
     ): ParkingSpot {
         archiveActive(savedAt)
         val spot = ParkingSpot(
@@ -28,6 +29,7 @@ class ParkingRepository(
             accuracyMeters = accuracyMeters,
             savedAt = savedAt,
             isActive = true,
+            savedAutomatically = savedAutomatically,
         )
         val id = dao.insert(spot)
         return spot.copy(id = id)
@@ -83,6 +85,9 @@ class ParkingRepository(
     }
 
     suspend fun getSpot(id: Long): ParkingSpot? = dao.getById(id)
+
+    /** One-shot read of the current spot, for callers with no lifecycle to collect a flow. */
+    suspend fun activeSpot(): ParkingSpot? = dao.getActive()
 
     private suspend fun archiveActive(at: Long) {
         dao.getActive()?.let { reminders.cancel(it.id) }

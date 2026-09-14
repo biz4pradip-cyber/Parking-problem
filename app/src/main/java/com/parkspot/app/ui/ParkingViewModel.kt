@@ -11,6 +11,10 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.parkspot.app.ParkSpotApplication
 import com.parkspot.app.R
+import com.parkspot.app.bluetooth.PairedDevice
+import com.parkspot.app.bluetooth.PairedDevices
+import com.parkspot.app.data.AutoParkConfig
+import com.parkspot.app.data.AutoParkSettings
 import com.parkspot.app.data.ParkingRepository
 import com.parkspot.app.data.ParkingSpot
 import com.parkspot.app.data.PhotoStore
@@ -114,6 +118,8 @@ class ParkingViewModel(
     private val locationClient: LocationClient,
     private val compassClient: CompassClient,
     private val photoStore: PhotoStore,
+    private val autoParkSettings: AutoParkSettings,
+    private val pairedDevices: PairedDevices,
 ) : ViewModel() {
 
     private val locationPermission = MutableStateFlow(locationClient.hasLocationPermission())
@@ -121,6 +127,14 @@ class ParkingViewModel(
 
     private val _message = MutableStateFlow<UiMessage?>(null)
     val message: StateFlow<UiMessage?> = _message
+
+    private val _devices = MutableStateFlow<List<PairedDevice>>(emptyList())
+
+    /** Paired Bluetooth devices, for choosing which one is the car. */
+    val devices: StateFlow<List<PairedDevice>> = _devices
+
+    val autoPark: StateFlow<AutoParkConfig> = autoParkSettings.observe()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), AutoParkConfig())
 
     /** Keeps "parked 2 h 05 min ago" and the reminder countdown ticking over. */
     private val ticker: Flow<Long> = flow {
@@ -263,6 +277,25 @@ class ParkingViewModel(
         viewModelScope.launch { repository.clearHistory() }
     }
 
+    // --- Automatic parking ---------------------------------------------------------------------
+
+    fun hasBluetoothPermission(): Boolean = pairedDevices.hasPermission()
+
+    fun isBluetoothAvailable(): Boolean = pairedDevices.isBluetoothAvailable()
+
+    /** Re-reads the paired list, e.g. after the permission is granted or Bluetooth is switched on. */
+    fun refreshPairedDevices() {
+        _devices.value = pairedDevices.list()
+    }
+
+    fun setAutoParkEnabled(enabled: Boolean) {
+        autoParkSettings.setEnabled(enabled)
+    }
+
+    fun setCar(device: PairedDevice?) {
+        autoParkSettings.setCar(device?.address, device?.name)
+    }
+
     fun consumeMessage() {
         _message.value = null
     }
@@ -285,6 +318,8 @@ class ParkingViewModel(
                     locationClient = container.locationClient,
                     compassClient = container.compassClient,
                     photoStore = container.photoStore,
+                    autoParkSettings = container.autoParkSettings,
+                    pairedDevices = container.pairedDevices,
                 )
             }
         }

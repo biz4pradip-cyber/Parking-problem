@@ -7,6 +7,17 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Watching the car stereo connect and disconnect. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- The spot is saved by a short foreground service, because the fix is taken with the app
+         closed and background location access is otherwise barred. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
     <!-- GPS is the whole point of the app, but the device compass is optional:
          without it the "find my car" screen falls back to a distance-only view. -->
     <uses-feature
@@ -17,6 +28,9 @@
         android:required="false" />
     <uses-feature
         android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.bluetooth"
         android:required="false" />
 
     <queries>
@@ -54,6 +68,23 @@
         <receiver
             android:name=".reminder.ReminderReceiver"
             android:exported="false" />
+
+        <!-- ACL_CONNECTED/DISCONNECTED are exempt from the implicit-broadcast restrictions, so
+             this still fires with the app closed. It must be exported to receive them. -->
+        <receiver
+            android:name=".bluetooth.CarBluetoothReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".bluetooth.AutoParkService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <receiver
             android:name=".reminder.BootReceiver"
