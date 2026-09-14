@@ -17,40 +17,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Alarm
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material.icons.rounded.DirectionsWalk
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.LocalParking
-import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,11 +50,16 @@ import com.parkspot.app.data.ParkingSpot
 import com.parkspot.app.ui.CapturePhotoContract
 import com.parkspot.app.ui.MapsLauncher
 import com.parkspot.app.ui.ParkingViewModel
-import com.parkspot.app.ui.components.PermissionCard
+import com.parkspot.app.ui.components.Hairline
+import com.parkspot.app.ui.components.MinimalTopBar
+import com.parkspot.app.ui.components.PermissionNotice
+import com.parkspot.app.ui.components.PrimaryAction
+import com.parkspot.app.ui.components.QuietAction
+import com.parkspot.app.ui.components.ScreenPadding
+import com.parkspot.app.ui.components.SectionLabel
 import com.parkspot.app.ui.components.SpotDetailsSheet
 import com.parkspot.app.util.Formatters
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: ParkingViewModel,
@@ -136,104 +121,73 @@ fun HomeScreen(
         }
     }
 
+    val park = {
+        if (state.locationPermissionGranted) viewModel.saveCurrentSpot() else requestLocation()
+    }
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.home_title)) },
+            MinimalTopBar(
+                title = stringResource(R.string.app_name),
                 actions = {
                     IconButton(onClick = onOpenHistory) {
                         Icon(
                             imageVector = Icons.Rounded.History,
                             contentDescription = stringResource(R.string.history),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = stringResource(R.string.settings),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
             )
         },
         bottomBar = {
-            Surface(tonalElevation = 3.dp) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                ) {
-                    Button(
-                        onClick = {
-                            if (state.locationPermissionGranted) {
-                                viewModel.saveCurrentSpot()
-                            } else {
-                                requestLocation()
-                            }
-                        },
-                        enabled = !state.isSaving,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                    ) {
-                        if (state.isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Text(
-                                text = stringResource(R.string.saving_spot),
-                                modifier = Modifier.padding(start = 12.dp),
-                            )
-                        } else {
-                            Icon(Icons.Rounded.LocalParking, contentDescription = null)
-                            Text(
-                                text = stringResource(
-                                    if (spot == null) R.string.save_spot else R.string.save_spot_again,
-                                ),
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(start = 12.dp),
-                            )
-                        }
+            HomeActions(
+                isParked = spot != null,
+                isSaving = state.isSaving,
+                onPark = park,
+                onFindMyCar = onFindMyCar,
+                onOpenInMaps = {
+                    if (spot != null && !MapsLauncher.openInMaps(context, spot)) {
+                        viewModel.show(R.string.error_no_maps_app)
                     }
-                }
-            }
+                },
+                onShare = {
+                    if (spot != null && !MapsLauncher.share(context, spot)) {
+                        viewModel.show(R.string.error_no_maps_app)
+                    }
+                },
+                onEdit = { showDetailsSheet = true },
+                onFound = viewModel::markFound,
+            )
         },
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = ScreenPadding),
         ) {
             if (!state.locationPermissionGranted) {
-                PermissionCard(onRequestPermission = requestLocation)
+                Spacer(Modifier.height(16.dp))
+                PermissionNotice(onRequestPermission = requestLocation)
             }
 
             if (spot == null) {
                 EmptyState()
             } else {
-                ParkedCard(
+                ParkedState(
                     spot = spot,
                     parkedFor = state.parkedFor ?: 0L,
                     reminderIn = state.reminderIn,
-                    onFindMyCar = onFindMyCar,
-                    onOpenInMaps = {
-                        if (!MapsLauncher.openInMaps(context, spot)) {
-                            viewModel.show(R.string.error_no_maps_app)
-                        }
-                    },
-                    onShare = {
-                        if (!MapsLauncher.share(context, spot)) {
-                            viewModel.show(R.string.error_no_maps_app)
-                        }
-                    },
-                    onEdit = { showDetailsSheet = true },
-                    onFound = viewModel::markFound,
                     onSetReminder = { minutes ->
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             notificationPermissionLauncher.launch(
@@ -246,6 +200,8 @@ fun HomeScreen(
                     onOpenPhoto = { showPhotoViewer = true },
                 )
             }
+
+            Spacer(Modifier.height(32.dp))
         }
     }
 
@@ -273,198 +229,195 @@ fun HomeScreen(
 
 @Composable
 private fun EmptyState() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.LocalParking,
-                contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = stringResource(R.string.no_spot_title),
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = stringResource(R.string.no_spot_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+    Column(modifier = Modifier.padding(top = 56.dp)) {
+        Text(
+            text = stringResource(R.string.no_spot_title),
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.no_spot_body),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ParkedCard(
+private fun ParkedState(
     spot: ParkingSpot,
     parkedFor: Long,
     reminderIn: Long?,
-    onFindMyCar: () -> Unit,
-    onOpenInMaps: () -> Unit,
-    onShare: () -> Unit,
-    onEdit: () -> Unit,
-    onFound: () -> Unit,
     onSetReminder: (Long) -> Unit,
     onClearReminder: () -> Unit,
     onOpenPhoto: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.parked_title),
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = "${Formatters.clockTime(spot.savedAt)} · ${Formatters.duration(parkedFor)} ago",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    Column(modifier = Modifier.padding(top = 40.dp)) {
+        SectionLabel(stringResource(R.string.parked_title))
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = Formatters.duration(parkedFor),
+            style = MaterialTheme.typography.displayLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = stringResource(
+                R.string.parked_since,
+                Formatters.clockTime(spot.savedAt),
+                Formatters.accuracy(spot.accuracyMeters),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
-            if (spot.savedAutomatically) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.DirectionsCar,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = stringResource(R.string.saved_automatically),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+        if (spot.savedAutomatically) {
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.DirectionsCar,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.saved_automatically),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+        }
 
+        if (spot.hasDetails || spot.photoUri != null) {
+            Spacer(Modifier.height(28.dp))
+            Hairline()
+            Spacer(Modifier.height(20.dp))
             if (spot.label.isNotBlank()) {
-                Text(text = spot.label, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = spot.label,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Spacer(Modifier.height(6.dp))
             }
             if (spot.note.isNotBlank()) {
-                Text(text = spot.note, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = spot.note,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-
             spot.photoUri?.let { uri ->
+                Spacer(Modifier.height(16.dp))
                 AsyncImage(
                     model = uri,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .height(180.dp)
+                        .clip(MaterialTheme.shapes.medium)
                         .clickable(onClick = onOpenPhoto),
                 )
             }
+        }
 
-            Text(
-                text = "${Formatters.coordinates(spot.latitude, spot.longitude)} · " +
-                    Formatters.accuracy(spot.accuracyMeters),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            ReminderRow(
-                reminderIn = reminderIn,
-                onSetReminder = onSetReminder,
-                onClearReminder = onClearReminder,
-            )
-
-            Button(
-                onClick = onFindMyCar,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+        Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(20.dp))
+        SectionLabel(stringResource(R.string.reminder))
+        Spacer(Modifier.height(4.dp))
+        if (reminderIn != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Rounded.DirectionsWalk, contentDescription = null)
                 Text(
-                    text = stringResource(R.string.find_my_car),
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(start = 12.dp),
+                    text = Formatters.countdown(reminderIn),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f),
+                )
+                QuietAction(
+                    text = stringResource(R.string.reminder_clear),
+                    onClick = onClearReminder,
                 )
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onOpenInMaps, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Rounded.Map, contentDescription = null)
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.open_in_maps))
-                }
-                OutlinedButton(onClick = onShare) {
-                    Icon(
-                        imageVector = Icons.Rounded.Share,
-                        contentDescription = stringResource(R.string.share_location),
+        } else {
+            Row(modifier = Modifier.padding(start = 0.dp)) {
+                listOf(30L to "30 min", 60L to "1 h", 120L to "2 h").forEach { (minutes, label) ->
+                    QuietAction(
+                        text = label,
+                        onClick = { onSetReminder(minutes) },
+                        color = MaterialTheme.colorScheme.primary,
                     )
+                    Spacer(Modifier.width(4.dp))
                 }
-                OutlinedButton(onClick = onEdit) {
-                    Icon(
-                        imageVector = Icons.Rounded.Edit,
-                        contentDescription = stringResource(R.string.edit_details),
-                    )
-                }
-            }
-
-            TextButton(
-                onClick = onFound,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-            ) {
-                Text(stringResource(R.string.found_my_car))
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The action area. One filled button for the thing you came to do, everything else as plain text
+ * so nothing competes with it.
+ */
 @Composable
-private fun ReminderRow(
-    reminderIn: Long?,
-    onSetReminder: (Long) -> Unit,
-    onClearReminder: () -> Unit,
+private fun HomeActions(
+    isParked: Boolean,
+    isSaving: Boolean,
+    onPark: () -> Unit,
+    onFindMyCar: () -> Unit,
+    onOpenInMaps: () -> Unit,
+    onShare: () -> Unit,
+    onEdit: () -> Unit,
+    onFound: () -> Unit,
 ) {
-    if (reminderIn != null) {
-        AssistChip(
-            onClick = onClearReminder,
-            label = { Text("${stringResource(R.string.reminder)} ${Formatters.countdown(reminderIn)}") },
-            leadingIcon = { Icon(Icons.Rounded.Alarm, contentDescription = null) },
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = stringResource(R.string.reminder_clear),
-                    modifier = Modifier.size(AssistChipDefaults.IconSize),
-                )
-            },
-        )
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = stringResource(R.string.reminder_set),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = ScreenPadding),
+    ) {
+        Hairline()
+        Spacer(Modifier.height(16.dp))
+
+        if (isParked) {
+            PrimaryAction(
+                text = stringResource(R.string.find_my_car),
+                onClick = onFindMyCar,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(30L to "30 min", 60L to "1 h", 120L to "2 h").forEach { (minutes, label) ->
-                    SuggestionChip(
-                        onClick = { onSetReminder(minutes) },
-                        label = { Text(label) },
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                QuietAction(stringResource(R.string.open_in_maps_short), onOpenInMaps)
+                QuietAction(stringResource(R.string.share_location), onShare)
+                QuietAction(stringResource(R.string.edit_details_short), onEdit)
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                QuietAction(stringResource(R.string.found_my_car), onFound)
+                QuietAction(
+                    text = stringResource(R.string.save_spot_again),
+                    onClick = onPark,
+                    enabled = !isSaving,
+                )
+            }
+        } else {
+            PrimaryAction(
+                text = stringResource(
+                    if (isSaving) R.string.saving_spot else R.string.save_spot,
+                ),
+                onClick = onPark,
+                enabled = !isSaving,
+                loading = isSaving,
+            )
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -475,7 +428,7 @@ private fun PhotoViewerDialog(photoUri: String, onDismiss: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(MaterialTheme.shapes.large)
                 .clickable(onClick = onDismiss),
         ) {
             AsyncImage(

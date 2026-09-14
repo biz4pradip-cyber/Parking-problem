@@ -5,33 +5,24 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.BatteryAlert
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -50,13 +41,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.parkspot.app.R
 import com.parkspot.app.bluetooth.PairedDevice
 import com.parkspot.app.ui.ParkingViewModel
+import com.parkspot.app.ui.components.Hairline
+import com.parkspot.app.ui.components.MinimalTopBar
+import com.parkspot.app.ui.components.QuietAction
+import com.parkspot.app.ui.components.ScreenPadding
+import com.parkspot.app.ui.components.SectionLabel
 import com.parkspot.app.util.BackgroundAccess
 
 /**
  * Hands-free setup: pick the car's Bluetooth device once, and the app saves the spot by itself
  * every time that device disconnects.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: ParkingViewModel,
@@ -67,7 +62,7 @@ fun SettingsScreen(
     val devices by viewModel.devices.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Re-checked on resume, since the exemption is granted in system settings and then returned from.
+    // Re-checked on resume, since the exemption is granted in system settings and returned from.
     var unrestricted by remember { mutableStateOf(BackgroundAccess.isUnrestricted(context)) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -92,92 +87,94 @@ fun SettingsScreen(
     ) { /* The spot is still saved if denied; you just do not get told about it. */ }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                        )
-                    }
-                },
-            )
+            MinimalTopBar(title = stringResource(R.string.settings), onBack = onBack)
         },
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .navigationBarsPadding(),
         ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.DirectionsCar, contentDescription = null)
-                        Text(
-                            text = stringResource(R.string.auto_park_title),
-                            style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.padding(start = 12.dp),
-                        )
-                    }
+            Column(modifier = Modifier.padding(horizontal = ScreenPadding)) {
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = stringResource(R.string.auto_park_title),
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.auto_park_summary),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(28.dp))
+            }
+
+            Hairline(modifier = Modifier.padding(horizontal = ScreenPadding))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = ScreenPadding, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.auto_park_enable),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(16.dp))
+                Switch(
+                    checked = config.enabled,
+                    onCheckedChange = { enabled ->
+                        viewModel.setAutoParkEnabled(enabled)
+                        if (enabled) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(
+                                    Manifest.permission.POST_NOTIFICATIONS,
+                                )
+                            }
+                            viewModel.refreshPairedDevices()
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+            }
+
+            Hairline(modifier = Modifier.padding(horizontal = ScreenPadding))
+
+            if (config.enabled) {
+                Section(title = stringResource(R.string.background_title)) {
                     Text(
-                        text = stringResource(R.string.auto_park_summary),
+                        text = stringResource(
+                            if (unrestricted) R.string.background_ok else R.string.background_restricted,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.auto_park_enable),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Switch(
-                            checked = config.enabled,
-                            onCheckedChange = { enabled ->
-                                viewModel.setAutoParkEnabled(enabled)
-                                if (enabled) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        // The result notification is the only sign it worked.
-                                        notificationPermissionLauncher.launch(
-                                            Manifest.permission.POST_NOTIFICATIONS,
-                                        )
-                                    }
-                                    viewModel.refreshPairedDevices()
+                    if (!unrestricted) {
+                        QuietAction(
+                            text = stringResource(R.string.background_open_settings),
+                            onClick = {
+                                if (!BackgroundAccess.openBatteryOptimizationSettings(context)) {
+                                    viewModel.show(R.string.background_no_settings)
                                 }
                             },
-                        )
-                    }
-
-                    if (config.enabled) {
-                        Text(
-                            text = stringResource(R.string.auto_park_reconnect_note),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
-            }
 
-            if (config.enabled) {
-                BackgroundCard(
-                    unrestricted = unrestricted,
-                    onOpenSettings = {
-                        if (!BackgroundAccess.openBatteryOptimizationSettings(context)) {
-                            viewModel.show(R.string.background_no_settings)
-                        }
-                    },
-                )
+                Hairline(modifier = Modifier.padding(horizontal = ScreenPadding))
 
                 CarPicker(
                     devices = devices,
@@ -191,63 +188,35 @@ fun SettingsScreen(
                     },
                     onSelect = viewModel::setCar,
                 )
+
+                Column(modifier = Modifier.padding(horizontal = ScreenPadding)) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.auto_park_reconnect_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
 
 @Composable
-private fun BackgroundCard(
-    unrestricted: Boolean,
-    onOpenSettings: () -> Unit,
+private fun Section(
+    title: String,
+    content: @Composable () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (unrestricted) {
-                MaterialTheme.colorScheme.surfaceVariant
-            } else {
-                MaterialTheme.colorScheme.secondaryContainer
-            },
-        ),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ScreenPadding, vertical = 20.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (unrestricted) {
-                        Icons.Rounded.CheckCircle
-                    } else {
-                        Icons.Rounded.BatteryAlert
-                    },
-                    contentDescription = null,
-                    tint = if (unrestricted) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    },
-                )
-                Text(
-                    text = stringResource(R.string.background_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 12.dp),
-                )
-            }
-            Text(
-                text = stringResource(
-                    if (unrestricted) R.string.background_ok else R.string.background_restricted,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (!unrestricted) {
-                Button(onClick = onOpenSettings) {
-                    Text(stringResource(R.string.background_open_settings))
-                }
-            }
-        }
+        SectionLabel(title)
+        Spacer(Modifier.height(10.dp))
+        content()
     }
 }
 
@@ -260,77 +229,61 @@ private fun CarPicker(
     onRequestPermission: () -> Unit,
     onSelect: (PairedDevice) -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.auto_park_pick_car),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 20.dp),
-            )
+    Section(title = stringResource(R.string.auto_park_pick_car)) {
+        when {
+            !hasPermission -> {
+                Text(
+                    text = stringResource(R.string.auto_park_permission),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                QuietAction(
+                    text = stringResource(R.string.auto_park_grant_bluetooth),
+                    onClick = onRequestPermission,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
 
-            when {
-                !hasPermission -> {
-                    Text(
-                        text = stringResource(R.string.auto_park_permission),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                    Button(
-                        onClick = onRequestPermission,
-                        modifier = Modifier.padding(horizontal = 20.dp),
+            !bluetoothAvailable || devices.isEmpty() -> {
+                Text(
+                    text = stringResource(
+                        if (bluetoothAvailable) {
+                            R.string.auto_park_no_devices
+                        } else {
+                            R.string.auto_park_bluetooth_off
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            else -> {
+                devices.forEach { device ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(device) }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(stringResource(R.string.auto_park_grant_bluetooth))
-                    }
-                }
-
-                !bluetoothAvailable || devices.isEmpty() -> {
-                    Text(
-                        text = stringResource(
-                            if (bluetoothAvailable) {
-                                R.string.auto_park_no_devices
-                            } else {
-                                R.string.auto_park_bluetooth_off
-                            },
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                }
-
-                else -> {
-                    devices.forEachIndexed { index, device ->
-                        if (index > 0) HorizontalDivider()
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(device) }
-                                .padding(horizontal = 20.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(
-                                selected = device.address.equals(selectedAddress, ignoreCase = true),
-                                onClick = { onSelect(device) },
+                        RadioButton(
+                            selected = device.address.equals(selectedAddress, ignoreCase = true),
+                            onClick = { onSelect(device) },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = device.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
                             )
-                            Column(modifier = Modifier.padding(start = 8.dp)) {
+                            if (device.looksLikeCar) {
                                 Text(
-                                    text = device.name,
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    text = stringResource(R.string.auto_park_likely_car),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                if (device.looksLikeCar) {
-                                    Text(
-                                        text = stringResource(R.string.auto_park_likely_car),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
                             }
                         }
                     }

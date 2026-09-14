@@ -4,12 +4,13 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,11 +30,11 @@ import androidx.compose.ui.unit.dp
 import com.parkspot.app.util.GeoUtils
 
 /**
- * The "walk this way" dial: a ring with a pointer that rotates to the car, and the remaining
- * distance in the middle.
+ * A thin ring and one pointer. No tick marks: the ring does not rotate with the phone, so ticks
+ * only ever implied a compass rose that was not there.
  *
- * @param rotationDegrees where to point, relative to the top of the screen; `null` while the
- *   heading is unknown (no compass or no fix yet), which greys the pointer out.
+ * @param rotationDegrees where the car is relative to the top of the screen; `null` while the
+ *   heading is unknown, which greys the pointer out.
  */
 @Composable
 fun CompassDial(
@@ -43,8 +44,8 @@ fun CompassDial(
     modifier: Modifier = Modifier,
     active: Boolean = true,
 ) {
-    // Accumulate rotation so the pointer always turns the short way round instead of unwinding
-    // through 359 degrees when crossing north.
+    // Accumulated so the pointer always turns the short way round rather than unwinding through
+    // 359 degrees when it crosses north.
     var accumulated by remember { mutableFloatStateOf(rotationDegrees ?: 0f) }
     LaunchedEffect(rotationDegrees) {
         val target = rotationDegrees ?: return@LaunchedEffect
@@ -61,8 +62,7 @@ fun CompassDial(
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
-    val ringColor = MaterialTheme.colorScheme.surfaceVariant
-    val tickColor = MaterialTheme.colorScheme.outlineVariant
+    val ringColor = MaterialTheme.colorScheme.outlineVariant
 
     Box(
         modifier = modifier
@@ -76,35 +76,18 @@ fun CompassDial(
 
             drawCircle(
                 color = ringColor,
-                radius = radius - 6.dp.toPx(),
+                radius = radius - 1.dp.toPx(),
                 center = center,
-                style = Stroke(width = 12.dp.toPx()),
+                style = Stroke(width = 1.dp.toPx()),
             )
 
-            // Twelve ticks, so the ring reads as a dial rather than a plain circle.
-            repeat(12) { index ->
-                rotate(degrees = index * 30f, pivot = center) {
-                    val long = index % 3 == 0
-                    drawLine(
-                        color = tickColor,
-                        start = Offset(center.x, center.y - radius + 16.dp.toPx()),
-                        end = Offset(
-                            center.x,
-                            center.y - radius + (if (long) 32.dp else 24.dp).toPx(),
-                        ),
-                        strokeWidth = (if (long) 3.dp else 1.5.dp).toPx(),
-                    )
-                }
-            }
-
             rotate(degrees = animatedRotation, pivot = center) {
-                val tip = center.y - radius + 22.dp.toPx()
-                val baseY = center.y - radius * 0.45f
-                val halfWidth = radius * 0.17f
+                val tip = center.y - radius + 14.dp.toPx()
+                val baseY = center.y - radius * 0.66f
+                val halfWidth = radius * 0.085f
                 val pointer = Path().apply {
                     moveTo(center.x, tip)
                     lineTo(center.x + halfWidth, baseY)
-                    lineTo(center.x, baseY - radius * 0.08f)
                     lineTo(center.x - halfWidth, baseY)
                     close()
                 }
@@ -112,16 +95,14 @@ fun CompassDial(
             }
         }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = headline,
                 style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
             )
+            Spacer(Modifier.height(6.dp))
             Text(
                 text = subline,
                 style = MaterialTheme.typography.bodyMedium,

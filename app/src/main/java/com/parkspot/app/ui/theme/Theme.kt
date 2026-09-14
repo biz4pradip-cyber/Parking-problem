@@ -1,61 +1,77 @@
 package com.parkspot.app.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 
 private val LightColors = lightColorScheme(
-    primary = ParkGreen,
-    onPrimary = Color.White,
-    primaryContainer = ParkGreenLight,
-    onPrimaryContainer = ParkGreenDark,
-    secondary = Amber,
-    onSecondary = Color.White,
-    secondaryContainer = AmberLight,
-    onSecondaryContainer = Color(0xFF2A1800),
-    background = SurfaceLight,
-    surface = SurfaceLight,
+    primary = Accent,
+    onPrimary = OnAccent,
+    primaryContainer = AccentSoft,
+    onPrimaryContainer = Accent,
+    secondary = Accent,
+    onSecondary = OnAccent,
+    secondaryContainer = AccentSoft,
+    onSecondaryContainer = Ink,
+    background = Paper,
+    onBackground = Ink,
+    surface = Paper,
+    onSurface = Ink,
+    surfaceVariant = PaperSoft,
+    onSurfaceVariant = InkMuted,
+    outline = InkMuted,
+    outlineVariant = HairlineLight,
     error = ErrorRed,
+    onError = OnAccent,
 )
 
 private val DarkColors = darkColorScheme(
-    primary = ParkGreenLight,
-    onPrimary = ParkGreenDark,
-    primaryContainer = ParkGreen,
-    onPrimaryContainer = Color.White,
-    secondary = AmberLight,
-    onSecondary = Color(0xFF2A1800),
-    secondaryContainer = Color(0xFF6B4300),
-    onSecondaryContainer = AmberLight,
-    background = SurfaceDark,
-    surface = SurfaceDark,
+    primary = AccentDark,
+    onPrimary = OnAccentDark,
+    primaryContainer = AccentSoftDark,
+    onPrimaryContainer = AccentDark,
+    secondary = AccentDark,
+    onSecondary = OnAccentDark,
+    secondaryContainer = AccentSoftDark,
+    onSecondaryContainer = InkDark,
+    background = PaperDark,
+    onBackground = InkDark,
+    surface = PaperDark,
+    onSurface = InkDark,
+    surfaceVariant = PaperSoftDark,
+    onSurfaceVariant = InkMutedDark,
+    outline = InkMutedDark,
+    outlineVariant = HairlineDark,
+    error = ErrorRedDark,
+    onError = OnAccentDark,
 )
 
+private val ParkSpotShapes = Shapes(
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(24.dp),
+)
+
+/**
+ * Deliberately not dynamic colour: the whole point of this palette is that exactly one thing on
+ * screen is coloured, and wallpaper-derived theming would tint the neutrals too.
+ */
 @Composable
 fun ParkSpotTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColors
-        else -> LightColors
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) DarkColors else LightColors,
         typography = ParkSpotTypography,
+        shapes = ParkSpotShapes,
         content = content,
     )
 }
