@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 android {
@@ -54,8 +55,11 @@ android {
     }
 }
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+// The Room plugin gives every variant its own schema directory. Setting
+// room.schemaLocation by hand instead makes the debug and release KSP tasks write the
+// same file, and in a parallel build one reads it while the other truncates it.
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 dependencies {
