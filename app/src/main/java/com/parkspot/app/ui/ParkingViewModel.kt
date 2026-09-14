@@ -1,6 +1,6 @@
 package com.parkspot.app.ui
 
-import android.location.GeomagneticField
+import android.hardware.GeomagneticField
 import android.location.Location
 import android.net.Uri
 import androidx.annotation.StringRes
