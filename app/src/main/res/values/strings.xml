@@ -75,6 +75,11 @@
     <string name="auto_park_no_fix">Could not get a GPS fix when you parked. Open ParkSpot to save the spot by hand.</string>
     <string name="auto_park_no_permission">ParkSpot needs location access to save your spot automatically.</string>
     <string name="saved_automatically">Saved automatically</string>
+    <string name="background_title">Running in the background</string>
+    <string name="background_ok">ParkSpot can wake up when your car disconnects, even when it is closed. Nothing runs in between, so it costs no battery.</string>
+    <string name="background_restricted">Battery optimisation is on for ParkSpot, so Android may stop it waking up when your car disconnects. Set it to \"Unrestricted\" to make automatic parking reliable.</string>
+    <string name="background_open_settings">Battery settings</string>
+    <string name="background_no_settings">This device has no battery-optimisation screen.</string>
 
     <!-- History -->
     <string name="history_empty">Past parking spots show up here.</string>

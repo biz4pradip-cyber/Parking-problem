@@ -14,6 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.BatteryAlert
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -31,16 +33,24 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.parkspot.app.R
 import com.parkspot.app.bluetooth.PairedDevice
 import com.parkspot.app.ui.ParkingViewModel
+import com.parkspot.app.util.BackgroundAccess
 
 /**
  * Hands-free setup: pick the car's Bluetooth device once, and the app saves the spot by itself
@@ -55,6 +65,21 @@ fun SettingsScreen(
 ) {
     val config by viewModel.autoPark.collectAsStateWithLifecycle()
     val devices by viewModel.devices.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Re-checked on resume, since the exemption is granted in system settings and then returned from.
+    var unrestricted by remember { mutableStateOf(BackgroundAccess.isUnrestricted(context)) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                unrestricted = BackgroundAccess.isUnrestricted(context)
+                viewModel.refreshPairedDevices()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val bluetoothPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -65,8 +90,6 @@ fun SettingsScreen(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* The spot is still saved if denied; you just do not get told about it. */ }
-
-    LaunchedEffect(Unit) { viewModel.refreshPairedDevices() }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -147,6 +170,15 @@ fun SettingsScreen(
             }
 
             if (config.enabled) {
+                BackgroundCard(
+                    unrestricted = unrestricted,
+                    onOpenSettings = {
+                        if (!BackgroundAccess.openBatteryOptimizationSettings(context)) {
+                            viewModel.show(R.string.background_no_settings)
+                        }
+                    },
+                )
+
                 CarPicker(
                     devices = devices,
                     selectedAddress = config.deviceAddress,
@@ -159,6 +191,61 @@ fun SettingsScreen(
                     },
                     onSelect = viewModel::setCar,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BackgroundCard(
+    unrestricted: Boolean,
+    onOpenSettings: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (unrestricted) {
+                MaterialTheme.colorScheme.surfaceVariant
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            },
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (unrestricted) {
+                        Icons.Rounded.CheckCircle
+                    } else {
+                        Icons.Rounded.BatteryAlert
+                    },
+                    contentDescription = null,
+                    tint = if (unrestricted) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    },
+                )
+                Text(
+                    text = stringResource(R.string.background_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            }
+            Text(
+                text = stringResource(
+                    if (unrestricted) R.string.background_ok else R.string.background_restricted,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!unrestricted) {
+                Button(onClick = onOpenSettings) {
+                    Text(stringResource(R.string.background_open_settings))
+                }
             }
         }
     }

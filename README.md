@@ -60,9 +60,22 @@ what the app listens for:
 A stereo that drops and reconnects mid-drive will not litter the history — a disconnect within
 three minutes of the last save is ignored.
 
-Worth knowing: some manufacturers' battery optimisation kills manifest receivers for apps they
-consider idle. If automatic saves stop happening, exclude ParkSpot from battery optimisation. The
-manual **Park here** button always works regardless.
+### Does it need to be open?
+
+No. Nothing runs between events: the *system* holds the receiver registration, wakes the app's
+process when the car disconnects, and lets it die once the fix is stored. That costs no battery
+while you are parked, and no notification sits in your shade.
+
+Two things can stop it, and Settings now shows both:
+
+- **The app must be launched once after install.** Android puts a newly installed — or
+  force-stopped — app in a "stopped state" where it receives no broadcasts at all until the user
+  opens it. Nothing can be done in code about this one.
+- **Battery optimisation.** Several manufacturers apply it aggressively enough to drop the
+  wake-up. The settings screen reports whether ParkSpot is exempt and links to the system screen
+  to change it.
+
+The manual **Park here** button always works regardless.
 
 ## Building it
 
