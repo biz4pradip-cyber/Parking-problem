@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.parkspot.app.R
 import com.parkspot.app.data.ParkingSpot
+import com.parkspot.app.ui.CapturePhotoContract
 import com.parkspot.app.ui.MapsLauncher
 import com.parkspot.app.ui.ParkingViewModel
 import com.parkspot.app.ui.components.PermissionCard
@@ -101,7 +102,7 @@ fun HomeScreen(
     ) { /* The reminder is stored either way; it just stays silent if denied. */ }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicture(),
+        CapturePhotoContract(),
     ) { success ->
         val uri = pendingPhotoUri
         if (success && uri != null && spot != null) {

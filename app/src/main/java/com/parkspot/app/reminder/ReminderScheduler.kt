@@ -49,8 +49,11 @@ class ReminderScheduler(private val context: Context) {
     }
 
     private fun canScheduleExactAlarms(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             alarmManager?.canScheduleExactAlarms() == true
+        } else {
+            true
+        }
 
     private fun pendingIntent(spotId: Long, mutableUpdate: Boolean): PendingIntent? {
         val intent = Intent(context, ReminderReceiver::class.java).apply {
