@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ParkSpot</string>
+
+    <!-- Home -->
+    <string name="home_title">ParkSpot</string>
+    <string name="save_spot">Park here</string>
+    <string name="save_spot_again">Park here instead</string>
+    <string name="saving_spot">Getting a GPS fix…</string>
+    <string name="no_spot_title">No car parked</string>
+    <string name="no_spot_body">Tap the button below when you park and ParkSpot remembers exactly where you left the car.</string>
+    <string name="parked_title">Your car is parked</string>
+    <string name="find_my_car">Find my car</string>
+    <string name="found_my_car">I found my car</string>
+    <string name="open_in_maps">Open in Maps</string>
+    <string name="share_location">Share</string>
+    <string name="edit_details">Edit details</string>
+    <string name="history">History</string>
+
+    <!-- Details -->
+    <string name="level_hint">Level / floor (e.g. P3)</string>
+    <string name="spot_hint">Row / spot (e.g. B-47)</string>
+    <string name="note_hint">Note (e.g. near the blue elevator)</string>
+    <string name="add_photo">Add photo</string>
+    <string name="retake_photo">Retake photo</string>
+    <string name="remove_photo">Remove photo</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+
+    <!-- Reminder -->
+    <string name="reminder">Parking reminder</string>
+    <string name="reminder_set">Remind me in…</string>
+    <string name="reminder_clear">Clear reminder</string>
+    <string name="reminder_channel_name">Parking reminders</string>
+    <string name="reminder_channel_description">Alerts before your parking time runs out</string>
+    <string name="reminder_notification_title">Parking time is almost up</string>
+
+    <!-- Find -->
+    <string name="find_title">Find my car</string>
+    <string name="walk_this_way">Walk this way</string>
+    <string name="you_are_here">You have arrived</string>
+    <string name="waiting_for_gps">Waiting for GPS…</string>
+    <string name="no_compass">This device has no compass, so only the distance is shown.</string>
+    <string name="accuracy_format">Accuracy ±%1$s</string>
+    <string name="calibrate_compass">Compass accuracy is low — wave the phone in a figure of eight to calibrate it.</string>
+    <string name="direction_of_you">%1$s of you</string>
+
+    <!-- Permissions -->
+    <string name="permission_title">Location permission needed</string>
+    <string name="permission_body">ParkSpot needs your location to save and find your parking spot. Nothing ever leaves your phone.</string>
+    <string name="grant_permission">Grant permission</string>
+
+    <!-- Errors -->
+    <string name="error_no_location">Could not get a location fix. Move somewhere with a clearer view of the sky and try again.</string>
+    <string name="error_no_maps_app">No maps app installed.</string>
+    <string name="error_no_camera_app">No camera app available.</string>
+
+    <!-- History -->
+    <string name="history_empty">Past parking spots show up here.</string>
+    <string name="clear_history">Clear history</string>
+    <string name="clear_history_confirm">Delete every past parking spot and its photos? The car you are parked at now is kept.</string>
+    <string name="parked_for">Parked for %1$s</string>
+    <string name="back">Back</string>
+</resources>
