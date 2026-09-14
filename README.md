@@ -24,6 +24,20 @@ Niceties: the screen stays awake while you are walking to the car, the pointer a
 short way round instead of unwinding through 359°, and the app tells you to calibrate the compass
 when the sensor reports low accuracy.
 
+## Getting the APK
+
+Every push runs [`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml), which runs
+the unit tests and builds the APK on a GitHub runner. Open the run under the repository's
+**Actions** tab and download **parkspot-debug-apk** from its Artifacts section. It is signed with
+the standard debug key, so it installs on a device as-is:
+
+```bash
+adb install -r parkspot-debug.apk      # or just open the file on the phone
+```
+
+Sideloading needs "install unknown apps" enabled for whichever app opens the file. For a
+Play-signable build, `./gradlew assembleRelease` with your own signing config in `app/build.gradle.kts`.
+
 ## Building it
 
 The project is a standard Gradle/Android Studio project — no API keys, no Google Maps SDK, no
