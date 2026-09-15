@@ -271,6 +271,12 @@ private fun ParkedState(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = Formatters.coordinates(spot.latitude, spot.longitude),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         if (spot.savedAutomatically) {
             Spacer(Modifier.height(10.dp))
