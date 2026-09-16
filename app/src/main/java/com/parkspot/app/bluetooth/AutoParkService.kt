@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.ServiceCompat
+import com.parkspot.app.AppContainer
 import com.parkspot.app.ParkSpotApplication
 import com.parkspot.app.R
 import com.parkspot.app.util.Formatters
@@ -23,6 +24,10 @@ import java.util.concurrent.TimeUnit
  * It has to be a foreground service: the work starts with the app closed, and a plain background
  * job would be both killed and barred from using location. It stops itself as soon as the fix is
  * stored, so it runs for seconds, not for the whole time you are parked.
+ *
+ * Everything here is defensive on purpose. This service is started from a broadcast with no UI on
+ * screen, so an exception does not produce a stack trace anyone sees — it just kills the app, and
+ * the next thing the user notices is a crash dialog.
  */
 class AutoParkService : Service() {
 
@@ -31,6 +36,43 @@ class AutoParkService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val container = (application as? ParkSpotApplication)?.container
+
+        // Check location access BEFORE promoting to the foreground, not after. From Android 14 a
+        // service declaring foregroundServiceType="location" throws a SecurityException when the
+        // app does not hold a location permission, and throwing out of onStartCommand takes the
+        // whole process down.
+        if (container == null || !container.locationClient.hasLocationPermission()) {
+            Log.w(TAG, "No location permission — cannot save the spot automatically")
+            AutoParkNotifications.showResult(this, getString(R.string.auto_park_no_permission))
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+
+        if (!promoteToForeground()) {
+            AutoParkNotifications.showResult(this, getString(R.string.auto_park_blocked))
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+
+        scope.launch {
+            try {
+                saveSpot(container)
+            } catch (e: Exception) {
+                Log.w(TAG, "Automatic parking failed", e)
+            } finally {
+                stopForegroundSafely()
+                stopSelf(startId)
+            }
+        }
+        return START_NOT_STICKY
+    }
+
+    /**
+     * @return false when the system refuses the promotion — a background-start restriction, or a
+     *   permission the service type requires. Either way the service must stop, not die.
+     */
+    private fun promoteToForeground(): Boolean = try {
         ServiceCompat.startForeground(
             this,
             AutoParkNotifications.SERVICE_NOTIFICATION_ID,
@@ -41,33 +83,26 @@ class AutoParkService : Service() {
                 0
             },
         )
-
-        scope.launch {
-            try {
-                saveSpot()
-            } catch (e: Exception) {
-                Log.w(TAG, "Automatic parking failed", e)
-            } finally {
-                ServiceCompat.stopForeground(this@AutoParkService, ServiceCompat.STOP_FOREGROUND_REMOVE)
-                stopSelf(startId)
-            }
-        }
-        return START_NOT_STICKY
+        true
+    } catch (e: Exception) {
+        Log.w(TAG, "The system refused the foreground start", e)
+        false
     }
 
-    private suspend fun saveSpot() {
-        val container = (application as? ParkSpotApplication)?.container ?: return
+    private fun stopForegroundSafely() {
+        try {
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not stop the foreground state", e)
+        }
+    }
 
+    private suspend fun saveSpot(container: AppContainer) {
         // A flaky stereo can drop and reconnect; without this you would collect a new "spot"
         // every time it blinks while you are still driving.
         val active = container.repository.activeSpot()
         if (active != null && System.currentTimeMillis() - active.savedAt < DEBOUNCE_MILLIS) {
             Log.i(TAG, "A spot was saved moments ago — ignoring this disconnect")
-            return
-        }
-
-        if (!container.locationClient.hasLocationPermission()) {
-            AutoParkNotifications.showResult(this, getString(R.string.auto_park_no_permission))
             return
         }
 

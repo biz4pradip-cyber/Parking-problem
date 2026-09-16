@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import com.parkspot.app.ParkSpotApplication
+import com.parkspot.app.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,11 +46,21 @@ class CarBluetoothReceiver : BroadcastReceiver() {
                 Log.i(TAG, "Car disconnected — saving the parking spot")
                 // Receiving a Bluetooth broadcast that needs BLUETOOTH_CONNECT is one of the
                 // documented exemptions that still allows starting a foreground service from
-                // the background, which is how the fix gets taken with the app closed.
-                ContextCompat.startForegroundService(
-                    context,
-                    Intent(context, AutoParkService::class.java),
-                )
+                // the background, which is how the fix gets taken with the app closed. The
+                // exemption is not guaranteed on every OEM build though, and an exception thrown
+                // out of a receiver kills the app, so a refusal has to be survivable.
+                try {
+                    ContextCompat.startForegroundService(
+                        context,
+                        Intent(context, AutoParkService::class.java),
+                    )
+                } catch (e: Exception) {
+                    Log.w(TAG, "The system refused the automatic-parking service", e)
+                    AutoParkNotifications.showResult(
+                        context,
+                        context.getString(R.string.auto_park_blocked),
+                    )
+                }
             }
 
             BluetoothDevice.ACTION_ACL_CONNECTED -> {
@@ -58,6 +69,10 @@ class CarBluetoothReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.Default).launch {
                     try {
                         application.container.repository.markFound()
+                    } catch (e: Exception) {
+                        // An uncaught failure in a launched coroutine reaches the thread's
+                        // default handler and takes the process with it.
+                        Log.w(TAG, "Could not archive the spot on reconnect", e)
                     } finally {
                         pendingResult.finish()
                     }

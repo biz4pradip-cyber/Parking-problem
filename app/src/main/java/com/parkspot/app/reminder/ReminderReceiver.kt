@@ -3,6 +3,7 @@ package com.parkspot.app.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.parkspot.app.ParkSpotApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,8 @@ class ReminderReceiver : BroadcastReceiver() {
                 if (spot != null && spot.isActive) {
                     container.repository.setReminder(spot, null)
                 }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not post the parking reminder", e)
             } finally {
                 pendingResult.finish()
             }
@@ -38,6 +41,7 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     companion object {
+        private const val TAG = "ReminderReceiver"
         const val ACTION_PARKING_REMINDER = "com.parkspot.app.action.PARKING_REMINDER"
         const val EXTRA_SPOT_ID = "spot_id"
     }

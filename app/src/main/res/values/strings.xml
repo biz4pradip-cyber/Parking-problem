@@ -75,6 +75,7 @@
     <string name="auto_park_working">Saving where you parked…</string>
     <string name="auto_park_saved">Parking spot saved automatically (%1$s)</string>
     <string name="auto_park_no_fix">Could not get a GPS fix when you parked. Open ParkSpot to save the spot by hand.</string>
+    <string name="auto_park_blocked">Android would not let ParkSpot save your spot in the background. Open the app to save it by hand.</string>
     <string name="auto_park_no_permission">ParkSpot needs location access to save your spot automatically.</string>
     <string name="saved_automatically">Saved automatically</string>
     <string name="background_title">Running in the background</string>
