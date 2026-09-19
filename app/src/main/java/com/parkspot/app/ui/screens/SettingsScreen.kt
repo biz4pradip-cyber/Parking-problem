@@ -64,11 +64,13 @@ fun SettingsScreen(
 
     // Re-checked on resume, since the exemption is granted in system settings and returned from.
     var unrestricted by remember { mutableStateOf(BackgroundAccess.isUnrestricted(context)) }
+    var alwaysLocation by remember { mutableStateOf(BackgroundAccess.hasBackgroundLocation(context)) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 unrestricted = BackgroundAccess.isUnrestricted(context)
+                alwaysLocation = BackgroundAccess.hasBackgroundLocation(context)
                 viewModel.refreshPairedDevices()
             }
         }
@@ -85,6 +87,13 @@ fun SettingsScreen(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* The spot is still saved if denied; you just do not get told about it. */ }
+
+    val backgroundLocationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        alwaysLocation = granted
+        if (!granted) BackgroundAccess.openAppSettings(context)
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -153,6 +162,39 @@ fun SettingsScreen(
             Hairline(modifier = Modifier.padding(horizontal = ScreenPadding))
 
             if (config.enabled) {
+                Section(title = stringResource(R.string.always_location_title)) {
+                    Text(
+                        text = stringResource(
+                            if (alwaysLocation) {
+                                R.string.always_location_ok
+                            } else {
+                                R.string.always_location_missing
+                            },
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (!alwaysLocation) {
+                        QuietAction(
+                            text = stringResource(R.string.always_location_action),
+                            onClick = {
+                                // From Android 11 the runtime dialog no longer offers this at
+                                // all, so the settings page is the only way through.
+                                if (BackgroundAccess.needsSettingsForBackgroundLocation()) {
+                                    BackgroundAccess.openAppSettings(context)
+                                } else {
+                                    backgroundLocationLauncher.launch(
+                                        Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                                    )
+                                }
+                            },
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+
+                Hairline(modifier = Modifier.padding(horizontal = ScreenPadding))
+
                 Section(title = stringResource(R.string.background_title)) {
                     Text(
                         text = stringResource(

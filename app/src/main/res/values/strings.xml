@@ -75,6 +75,11 @@
     <string name="auto_park_working">Saving where you parked…</string>
     <string name="auto_park_saved">Parking spot saved automatically (%1$s)</string>
     <string name="auto_park_no_fix">Could not get a GPS fix when you parked. Open ParkSpot to save the spot by hand.</string>
+    <string name="auto_park_needs_always">Android blocked ParkSpot from saving your spot. Set Location to \"Allow all the time\" in Settings and it will work with the app closed.</string>
+    <string name="always_location_title">Location access</string>
+    <string name="always_location_ok">Set to \"Allow all the time\", so the spot can be saved with the app closed.</string>
+    <string name="always_location_missing">Automatic parking needs Location set to \"Allow all the time\". Without it Android has to be asked for a foreground service instead, and on this phone it refused.</string>
+    <string name="always_location_action">Allow all the time</string>
     <string name="auto_park_blocked">Android would not let ParkSpot save your spot in the background. Open the app to save it by hand.</string>
     <string name="auto_park_no_permission">ParkSpot needs location access to save your spot automatically.</string>
     <string name="saved_automatically">Saved automatically</string>

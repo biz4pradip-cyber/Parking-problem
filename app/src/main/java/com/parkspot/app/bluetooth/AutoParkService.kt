@@ -7,23 +7,24 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.ServiceCompat
-import com.parkspot.app.AppContainer
 import com.parkspot.app.ParkSpotApplication
 import com.parkspot.app.R
-import com.parkspot.app.util.Formatters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 /**
  * Takes the GPS fix after the car's Bluetooth drops.
  *
- * It has to be a foreground service: the work starts with the app closed, and a plain background
- * job would be both killed and barred from using location. It stops itself as soon as the fix is
- * stored, so it runs for seconds, not for the whole time you are parked.
+ * This is the route used when the app does NOT hold "Allow all the time" location access: a
+ * location-typed foreground service is the only other way to read location with the app closed.
+ * It stops itself as soon as the fix is stored, so it runs for seconds.
+ *
+ * The system can refuse to start it at all — several OEM builds do not honour the Bluetooth
+ * broadcast exemption from the Android 12 background-start rules — so the receiver prefers the
+ * inline route whenever background location makes that possible.
  *
  * Everything here is defensive on purpose. This service is started from a broadcast with no UI on
  * screen, so an exception does not produce a stack trace anyone sees — it just kills the app, and
@@ -57,7 +58,7 @@ class AutoParkService : Service() {
 
         scope.launch {
             try {
-                saveSpot(container)
+                AutoParkSaver(this@AutoParkService, container).save()
             } catch (e: Exception) {
                 Log.w(TAG, "Automatic parking failed", e)
             } finally {
@@ -97,33 +98,6 @@ class AutoParkService : Service() {
         }
     }
 
-    private suspend fun saveSpot(container: AppContainer) {
-        // A flaky stereo can drop and reconnect; without this you would collect a new "spot"
-        // every time it blinks while you are still driving.
-        val active = container.repository.activeSpot()
-        if (active != null && System.currentTimeMillis() - active.savedAt < DEBOUNCE_MILLIS) {
-            Log.i(TAG, "A spot was saved moments ago — ignoring this disconnect")
-            return
-        }
-
-        val location = container.locationClient.awaitCurrentLocation(FIX_TIMEOUT_MILLIS)
-        if (location == null) {
-            AutoParkNotifications.showResult(this, getString(R.string.auto_park_no_fix))
-            return
-        }
-
-        container.repository.saveSpot(
-            latitude = location.latitude,
-            longitude = location.longitude,
-            accuracyMeters = location.accuracy,
-            savedAutomatically = true,
-        )
-        AutoParkNotifications.showResult(
-            this,
-            getString(R.string.auto_park_saved, Formatters.accuracy(location.accuracy)),
-        )
-    }
-
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
@@ -131,7 +105,5 @@ class AutoParkService : Service() {
 
     private companion object {
         const val TAG = "AutoParkService"
-        val DEBOUNCE_MILLIS = TimeUnit.MINUTES.toMillis(3)
-        val FIX_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(25)
     }
 }

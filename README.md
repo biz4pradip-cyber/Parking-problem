@@ -47,12 +47,16 @@ what the app listens for:
 1. A manifest-declared receiver watches `ACTION_ACL_CONNECTED` / `ACTION_ACL_DISCONNECTED`. Both
    are exempt from Android's implicit-broadcast restrictions, so they still arrive with the app
    closed.
-2. On a disconnect from *your* chosen device it starts a short foreground service. Receiving a
-   Bluetooth broadcast that requires `BLUETOOTH_CONNECT` is one of the documented exemptions from
-   the Android 12 background-start restrictions, and a `location`-typed foreground service is what
-   lets the fix be taken at all with the app in the background — no background-location permission
-   needed.
-3. The service takes one fix, stores the spot, posts a quiet notification and stops. It runs for
+2. On a disconnect from *your* chosen device it takes the fix by whichever of the two routes
+   Android actually allows:
+   - **With Location set to "Allow all the time"** the receiver just does it, inside its own
+     execution window. Nothing can refuse this, which is why it is the preferred route.
+   - **Without it**, the only remaining way to read location with the app closed is a
+     `location`-typed foreground service. Receiving a Bluetooth broadcast gated on
+     `BLUETOOTH_CONNECT` is a documented exemption from the Android 12 background-start rules —
+     but that exemption is not honoured on every OEM build, and when it is refused the app says
+     so rather than failing silently.
+3. Either route takes one fix, stores the spot, posts a quiet notification and stops. It runs for
    seconds, not for the time you are parked.
 4. Reconnecting to the same device archives the spot: you are in the car, so there is nothing to
    walk back to.
@@ -74,6 +78,10 @@ Two things can stop it, and Settings now shows both:
 - **Battery optimisation.** Several manufacturers apply it aggressively enough to drop the
   wake-up. The settings screen reports whether ParkSpot is exempt and links to the system screen
   to change it.
+- **Location set to "Allow all the time".** Not strictly required, but it is the difference
+  between a route nothing can refuse and one that depends on an exemption your phone may not
+  honour. The settings screen reports this too. (An app asking for this on the Play Store needs a
+  prominent disclosure and a review justification; for a sideloaded build it is just a toggle.)
 
 The manual **Park here** button always works regardless.
 
